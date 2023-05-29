@@ -1,0 +1,182 @@
+#include <Keypad.h>
+#include <LiquidCrystal.h>
+#include <TM1637Display.h>
+
+const byte ROWS = 4, COLS = 4;
+char hexaKeys[ROWS][COLS] = {{'1', '2', '3', 'A'}, {'4', '5', '6', 'B'}, {'7', '8', '9', 'C'}, {'*', '0', '#', 'D'}};
+byte rowPins[ROWS] = {39, 41, 43, 45}, colPins[COLS] = {47, 49, 51, 53};
+Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
+
+LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
+TM1637Display display(9, 10);
+
+String pass = "0118", inputPass = "";
+int count = 0, index = 0, comSetVal = 0, tahap = 1;
+const uint8_t allON[] = {0xff, 0xff, 0xff, 0xff};
+const uint8_t allOFF[] = {0x00, 0x00, 0x00, 0x00};
+const uint8_t allZERO[] = {
+  SEG_A | SEG_B | SEG_C | SEG_D | SEG_E | SEG_F,
+  SEG_A | SEG_B | SEG_C | SEG_D | SEG_E | SEG_F,
+  SEG_A | SEG_B | SEG_C | SEG_D | SEG_E | SEG_F,
+  SEG_A | SEG_B | SEG_C | SEG_D | SEG_E | SEG_F
+};
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(22, OUTPUT);
+  digitalWrite(22, HIGH);
+
+  lcd.begin(16, 2);
+  display.setBrightness(4);
+}
+
+void loop() {
+  if (tahap == 1) {
+    welcomeScreen();
+  } else if (tahap == 2) {
+    insertPass();
+  } else if (tahap == 3) {
+    setValueScreen();
+  } else if (tahap == 4) {
+    setValue();
+  } else if (tahap == 5) {
+    countUp();
+  } else if (tahap == 6) {
+    countDown();
+  }
+}
+
+void welcomeScreen() {
+  display.clear();
+  lcd.clear();
+  lcd.print(" - WELCOME - ");
+  delay(1000);
+  lcd.clear();
+  lcd.print("- PassKey -");
+  display.setSegments(allZERO);
+  tahap = 2;
+}
+
+void insertPass() {
+  char customKey = customKeypad.getKey();
+  if (customKey != NO_KEY) {
+    if (isdigit(customKey)) {
+      if (index < 4) {
+        inputPass += customKey;
+        display.showNumberDec(inputPass.toInt(), true);
+        Serial.println(inputPass);
+        index++;
+        delay(200);
+      }
+    } else if (customKey == 'A') {
+      if (inputPass == pass) {
+        acceptPass();
+      } else {
+        rejectPass();
+      }
+    } else if (customKey == 'C') {
+      inputPass = "";
+      index = 0;
+      display.showNumberDec(0, true);
+    }
+  }
+}
+
+void setValueScreen() {
+  lcd.clear();
+  lcd.print(" - SetValue - ");
+  display.clear();
+  display.setSegments(allZERO);
+  tahap = 4;
+}
+
+void setValue() {
+  char customKey = customKeypad.getKey();
+  if (customKey != NO_KEY) {
+    if (isdigit(customKey)) {
+      if (index < 2) {
+        inputPass += customKey;
+        comSetVal = inputPass.toInt() * 100;
+        display.showNumberDec(comSetVal, true);
+        Serial.println(comSetVal);
+        index++;
+        delay(200);
+      }
+    } else if (customKey == 'A') {
+      index = 0;
+      tahap = 5;
+    } else if (customKey == 'B') {
+      index = 0;
+      tahap = 6;
+    } else if (customKey == 'C') {
+      inputPass = "";
+      index = 0;
+comSetVal = 0;
+display.showNumberDec(comSetVal, true);
+} else if (customKey == 'D') {
+index = 0;
+tahap = 1;
+}
+}
+}
+
+void countUp() {
+count = comSetVal / 100;
+lcd.clear();
+lcd.print(" - NaikNaik - ");
+for (int c = 0; c <= count; c++) {
+display.showNumberDec(comSetVal + c, true);
+delay(250);
+}
+resetAfterCount();
+}
+
+void countDown() {
+count = comSetVal / 100;
+lcd.clear();
+lcd.print(" - TurunTurun - ");
+for (int c = count; c >= 0; c--) {
+display.showNumberDec(comSetVal + c, true);
+delay(250);
+}
+resetAfterCount();
+}
+
+void resetAfterCount() {
+lcd.clear();
+lcd.print(" - hahaha - ");
+delay(1000);
+display.clear();
+inputPass = "";
+index = 0;
+tahap = 3;
+}
+
+void acceptPass() {
+Serial.println("O");
+lcd.clear();
+lcd.print(" - ACCEPTED - ");
+inputPass = "";
+index = 0;
+blinkDisplay(2, 500);
+tahap = 3;
+}
+
+void rejectPass() {
+Serial.println("X");
+lcd.clear();
+lcd.print(" - FAILED - ");
+inputPass = "";
+index = 0;
+blinkDisplay(4, 250);
+tahap = 1;
+}
+
+void blinkDisplay(int times, int duration) {
+for (int i = 0; i < times; i++) {
+display.clear();
+delay(duration);
+display.showNumberDec(inputPass.toInt(), true);
+delay(duration);
+}
+}
