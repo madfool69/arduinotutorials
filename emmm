@@ -134,12 +134,12 @@ void setup()
 
 
   pinMode(pbuzzer, OUTPUT);
-  tm.showNumberDec(0, true);
-  tm.setBrightness(4);
-  lcd.begin(20,4);
-  lcd.init();
+  tm.showNumberDec(0, true);//munculke nomer di seven segment
+  tm.setBrightness(4);//padang e seven segment
+  lcd.begin(20,4);//mulai lcd atau spek lcd
+  lcd.init();//initializing lcd
   lcd.backlight();
-  lcd.setCursor (6,1);
+  lcd.setCursor (6,1);//mulai tulisan welcome dimana posisine
   lcd.print("WELCOME");
 
   myservo.attach(6);
